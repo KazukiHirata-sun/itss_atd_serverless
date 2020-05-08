@@ -1,82 +1,64 @@
-import React, { useState } from 'react';
-import TextField from '@material-ui/core/TextField';
-import Button from '@material-ui/core/Button';
+import React from 'react'; 
+import Fab from '@material-ui/core/Fab';
+import AddIcon from '@material-ui/icons/Add';
 import './App.css';
 import Todo from './pages/Todo';
-import styled from 'styled-components'
+import styled from 'styled-components';
+
+import useTodo from './hooks/useTodo';
+import SimpleBottomNavigation from './components/BottomNavigation';
+import AddModal from './pages/Todo/AddModal';
+import CircularProgress from '@material-ui/core/CircularProgress';
+import DeleteModal from './pages/Todo/DeleteModal';
+import PCTab from './components/PCTab';
+
+// For Firebase
+// import 'firebase/firestore'; 
+// For Firebase
 
 function App() {
 
-  const [input, setInput] = useState('');
-  const [todoList, setTodoList] = useState([]);
-  const [finishedList, setFinishedList] = useState([]);
-  
-  const [isLoading, setIsLoading] = useState(true);
-
-  const [isChangedTodo, setIsChangedTodo] = useState(false);
-
-  const [isChangedFinished, setIsChangedFinished] = useState(false);
-  
-  const addTodo = async () => {
-    if (!!input) {
-      // 追記 Todoが変化したのでtrue
-      setIsChangedTodo(true);
-      setTodoList([...todoList, input]);
-      setInput('');
-    }
-  }
-
-  const deleteTodo = (index) => {
-    // 追記 Todoが変化したのでtrue
-    setIsChangedTodo(true);
-    setTodoList(todoList.filter((_, idx) => idx !== index))
-  }
-
-  const deleteFinishTodo = (index) => {
-    // 追記 完了済みTodoが変化したのでtrue
-    setIsChangedFinished(true);
-    setFinishedList(finishedList.filter((_, idx) => idx !== index))
-  }
-
-  const finishTodo = (index) => {
-    // 追記 Todo、完了済みTodoがともに変化したのでtrue
-    setIsChangedTodo(true);
-    setIsChangedFinished(true);
-    deleteTodo(index)
-    setFinishedList([...finishedList,todoList.find((_, idx) => idx === index)])
-  }
-
-  const reopenTodo = (index) => {
-    // 追記 Todo、完了済みTodoがともに変化したのでtrue
-    setIsChangedTodo(true);
-    setIsChangedFinished(true);
-    deleteFinishTodo(index)
-    setTodoList([...todoList,finishedList.find((_, idx) => idx === index)])
-  }
+  const state = useTodo();
 
   return (
-    <div className="App">
+    <Body className="App">
+      <AddModal
+        isOpen={state.isOpenAddModal}
+        setIsOpen={state.setIsOpenAddModal}
+        input={state.input}
+        setInput={state.setInput}
+        addTodo={state.addTodo}
+      />
+      <DeleteModal
+        isOpenNumber={state.isOpenDeleteModalByNumber}
+        setIsOpen={state.setIsOpenDeleteModalByNumber}
+        todoList={state.deleteType === "todo" ? state.todoList : state.finishedList}
+        deleteTodo={state.deleteType === "todo" ? state.deleteTodo : state.deleteFinishTodo}
+      />
       <Title>Todoリスト</Title>
-      <TextField onChange={(e) => setInput(e.target.value)} value={input}/>
-      <Button variant="contained" color="primary" onClick={() => addTodo()}>追加</Button>
-       {isLoading ? 
-        <Loading>loading</Loading>
+      <PCTab setTabIndex={state.setTabIndex} tabIndex={state.tabIndex}/>
+      {state.isLoading ? 
+         <LoadingCircle />
       :
-      <TodoContainer>
-      {/* todoListという変数とdeleteTodoという関数をpropsとしてTodoコンポーネントに渡している*/}
-        <SubContainer>
-          <SubTitle>未完了</SubTitle>
-          <Todo todoList={todoList} deleteTodo={deleteTodo} changeTodoStatus={finishTodo} type="todo"/>
-        </SubContainer>
-        <SubContainer>
-          <SubTitle>完了済み</SubTitle>
-          <Todo todoList={finishedList} deleteTodo={deleteFinishTodo} changeTodoStatus={reopenTodo} type="done"/>
-        </SubContainer>
-      </TodoContainer>
-       }
-    </div>
+        <TodoContainer>
+          <Todo 
+            todoList={state.todoList}
+            changeTodoStatus={state.finishTodo}
+            finishedList={state.finishedList}
+            changeFinishedStatus={state.reopenTodo}
+            tabIndex={state.tabIndex}
+            setDeleteType={state.setDeleteType}
+            isOpenDeleteModal={state.setIsOpenDeleteModalByNumber}
+          />
+        </TodoContainer>
+      }
+      <SimpleBottomNavigation setTabIndex={state.setTabIndex} tabIndex={state.tabIndex}/>
+      <AddButton color="primary" aria-label="add" onClick={() => state.setIsOpenAddModal(true)}>
+        <AddIcon />
+      </AddButton>
+    </Body>
   );
-}
+};
 
 export default App;
 
@@ -87,23 +69,26 @@ const Title = styled.p`
   font-weight: 200;
 `;
 
-const SubTitle = styled.p`
-  font-size: 22px;
-  color: #5c5c5c;
-`;
-
-const SubContainer = styled.div`
-  width: 400px;
-`;
-
 const TodoContainer = styled.div`
   display: flex;
   flex-direction: row;
-  width: 80%;
   margin: 0 auto;
   justify-content: space-between;
 `;
 
-const Loading = styled.div`
-  margin: 40px auto;
+const AddButton = styled(Fab)`
+  position: fixed;
+  bottom: 14vh;
+  right: 6vh;
+  @media(min-width: 480px) {
+    right: 20vh;
+  }
+`;
+
+const Body = styled.div`
+  margin-bottom: 10vh;
+`;
+
+const LoadingCircle = styled(CircularProgress)`
+  margin-top: 10vh;
 `;
